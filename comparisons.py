@@ -2,7 +2,6 @@ import time
 from problems import TicTacToeGame, PongGame, FrozenLakeGame
 from algorithms import RandomAgent
 
-
 def run_episode(env, agent1, agent2=None, max_steps=50):
     """
         Runs a single episode of a game with a random agent.
@@ -83,7 +82,6 @@ def run_comparisons():
                     f"  {agent_name}: Time={metrics['time']:.2f}s, Efficiency={metrics['efficiency']:.2f}, Steps={metrics['steps']}, Winner={metrics['winner']}")
     # Return performance results
     return results
-
 
 if __name__ == "__main__":
     run_comparisons()

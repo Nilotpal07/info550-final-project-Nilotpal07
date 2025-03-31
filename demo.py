@@ -1,7 +1,5 @@
-# Import the NumPy library for numerical operations
-import numpy as np
-# OpenCV for rendering visualizations
-import cv2
+import numpy as np # Import the NumPy library for numerical operations
+import cv2 # OpenCV for rendering visualizations
 from problems import TicTacToeGame, PongGame, FrozenLakeGame  # Importing custom game environments
 from algorithms import RandomAgent # Importing a random agent to play the games
 

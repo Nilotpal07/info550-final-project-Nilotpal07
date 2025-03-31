@@ -1,5 +1,4 @@
-# Import the NumPy library for numerical operations
-import numpy as np
+import numpy as np # Import the NumPy library for numerical operations
 
 class TicTacToeGame:
     # Initialize a 3x3 Tic-Tac-Toe board with zeros (empty cells)

@@ -1,5 +1,4 @@
-# Import the NumPy library for numerical operations
-import numpy as np
+import numpy as np  #Import the NumPy library for numerical operations
 
 # Define a class named RandomAgent
 class RandomAgent:
