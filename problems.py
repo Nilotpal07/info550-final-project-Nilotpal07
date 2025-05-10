@@ -50,8 +50,8 @@ class TicTacToeGame:
 
 class PongGame:
     def __init__(self):
-        self.width = 5 # Width of the game area
-        self.height = 5 # Height of the game area
+        self.width = 10 # Width of the game area
+        self.height = 10 # Height of the game area
         self.paddle_length = 2 # Length of paddles
         self.max_paddle_y = self.height - self.paddle_length # Max paddle position
 
@@ -127,15 +127,20 @@ class PongGame:
 
 class FrozenLakeGame:
     def __init__(self):
-        # 4x4 grid world
+        # 9x9 grid world
         self.grid = np.array([
-            ['S', 'F', 'F', 'F'],
-            ['F', 'H', 'F', 'H'],
-            ['F', 'F', 'F', 'H'],
-            ['H', 'F', 'F', 'G']
+            ['S', 'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F'],
+            ['F', 'H', 'F', 'H', 'F', 'F', 'F', 'F', 'F'],
+            ['F', 'F', 'H', 'F', 'H', 'H', 'F', 'F', 'F'],
+            ['H', 'F', 'F', 'H', 'F', 'H', 'F', 'H', 'F'],
+            ['F', 'H', 'H', 'F', 'F', 'F', 'F', 'F', 'F'],
+            ['F', 'H', 'F', 'F', 'H', 'F', 'F', 'F', 'F'],
+            ['F', 'H', 'H', 'F', 'F', 'H', 'F', 'F', 'F'],
+            ['F', 'H', 'H', 'F', 'H', 'F', 'F', 'F', 'F'],
+            ['F', 'F', 'F', 'F', 'F', 'F', 'F', 'F', 'G']
         ])
-        self.rows = 4
-        self.cols = 4
+        self.rows = 9
+        self.cols = 9
         self.agent_row = 0
         self.agent_col = 0
 
@@ -147,19 +152,20 @@ class FrozenLakeGame:
 
     def step(self, action):
         # Move agent based on action
-        if action == 0 and self.agent_row > 0:  # Up
-            self.agent_row -= 1 # Up
+        if action == 0 and self.agent_row > 0:         # Up
+            self.agent_row -= 1
         elif action == 1 and self.agent_row < self.rows - 1:  # Down
-            self.agent_row += 1 #down
-        elif action == 2 and self.agent_col > 0:  # Left
-            self.agent_col -= 1 #left
+            self.agent_row += 1
+        elif action == 2 and self.agent_col > 0:        # Left
+            self.agent_col -= 1
         elif action == 3 and self.agent_col < self.cols - 1:  # Right
-            self.agent_col += 1 #right
+            self.agent_col += 1
 
         reward = 0
         done = False
         tile = self.grid[self.agent_row, self.agent_col]
-        if tile == 'G':  # # Goal reached
+
+        if tile == 'G':  # Goal reached
             reward = 1
             done = True
         elif tile == 'H':  # Fell into hole

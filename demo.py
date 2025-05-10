@@ -58,9 +58,9 @@ def render_state(env, state, step):
     cv2.imshow(f"Project Demo - Step {step}", img)
     cv2.waitKey(300)
 
-def demo_random_agent(env, action_size):
-    agent1 = RandomAgent(action_size)
-    agent2 = RandomAgent(action_size) if isinstance(env, PongGame) else None
+def demo_agent(env, action_size, agent_class):
+    agent1 = agent_class(action_size)
+    agent2 = agent_class(action_size) if isinstance(env, PongGame) else None
     max_steps = 50
     winner = None
 
@@ -70,18 +70,20 @@ def demo_random_agent(env, action_size):
             done = False
             steps = 0
             score = 0
-            print(f"\n=== Demo: Random Agent on {type(env).__name__} ===")
+            print(f"\n=== Demo: {agent_class.__name__} on {type(env).__name__} ===")
             while not done and steps < max_steps:
                 action = agent1.choose_action(state)
                 row, col = env.get_position()
                 next_state, reward, done = env.step(action)
+                if hasattr(agent1, 'update'):
+                    agent1.update(state, action, reward, next_state, done)
                 score += reward
                 print(f"Move {steps}: State={state} (Row={row}, Col={col}), Action={action}, Reward={reward}")
                 render_state(env, state, steps + 1)
                 state = next_state
                 steps += 1
             if score > 0:
-                winner = "Random Agent"
+                winner = agent_class.__name__
                 break
             print(f"Episode failed (Reward={score}), restarting...")
             cv2.destroyAllWindows()
@@ -92,18 +94,22 @@ def demo_random_agent(env, action_size):
         score = 0
         score_left = 0
         score_right = 0
-        print(f"\n=== Demo: Random Agent on {type(env).__name__} ===")
+        print(f"\n=== Demo: {agent_class.__name__} on {type(env).__name__} ===")
         while not done and steps < max_steps:
             if isinstance(env, PongGame):
                 action1 = agent1.choose_action(state)
                 action2 = agent2.choose_action(state)
                 next_state, (reward_left, reward_right), done = env.step(action1, action2)
+                if hasattr(agent1, 'update'):
+                    agent1.update(state, action1, reward_left, next_state, done)
                 score_left += reward_left
                 score_right += reward_right
                 print(f"Move {steps}: Ball=({state[0]}, {state[1]}), Left PaddleY={state[2]}, Right PaddleY={state[3]}, Left Action={action1}, Right Action={action2}, Reward Left={reward_left}, Reward Right={reward_right}")
             else:
                 action = agent1.choose_action(state)
                 next_state, reward, done = env.step(action)
+                if hasattr(agent1, 'update'):
+                    agent1.update(state, action, reward, next_state, done)
                 score += reward
                 print(f"Move {steps}:")
                 print(state.reshape(3, 3))
@@ -114,7 +120,7 @@ def demo_random_agent(env, action_size):
         if isinstance(env, PongGame):
             winner = "Left Paddle Agent" if score_left < 0 else "Right Paddle Agent"
         else:
-            winner = "Random Agent (1)" if score > 0 else "Opponent Agent (2)"
+            winner = f"{agent_class.__name__} (1)" if score > 0 else "Opponent Agent (2)"
 
     print(f"Demo ended after {steps} steps (Done={done})")
     print(f"The Winner is {winner}!")
@@ -127,7 +133,7 @@ def run_project_demo():
         "FrozenLake": (FrozenLakeGame(), 8)
     }
     for game_name, (env, action_size) in games.items():
-        demo_random_agent(env, action_size)
+        demo_agent(env, action_size)
 
 if __name__ == "__main__":
     print("Project Report: Random Agent Demonstrations")
