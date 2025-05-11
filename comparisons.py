@@ -2,7 +2,7 @@ import time
 from problems import TicTacToeGame, PongGame, FrozenLakeGame
 from algorithms import RandomAgent, QLearningAgent
 
-def run_episode(env, agent1, agent2=None, max_steps=50):
+def run_episode(env, agent1, agent2=None, max_steps=500):
     """
     Runs a single episode of a game with specified agents.
     :param env: The game environment.

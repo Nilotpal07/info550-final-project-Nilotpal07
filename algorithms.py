@@ -24,7 +24,7 @@ def get_state_key(state):
 
 
 class QLearningAgent:
-    def __init__(self, action_size, learning_rate=0.3, discount_factor=0.99, epsilon=0.5, epsilon_decay=0.997, epsilon_min=0.1):
+    def __init__(self, action_size, learning_rate=0.1, discount_factor=0.99, epsilon=1, epsilon_decay=0.995, epsilon_min=0.05):
         self.action_size = action_size
         self.q_table = {}  # Dictionary to store Q-values
         self.lr = learning_rate

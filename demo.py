@@ -61,7 +61,7 @@ def render_state(env, state, step):
 def demo_agent(env, action_size, agent_class):
     agent1 = agent_class(action_size)
     agent2 = agent_class(action_size) if isinstance(env, PongGame) else None
-    max_steps = 50
+    max_steps = 500
     winner = None
 
     if isinstance(env, FrozenLakeGame):
@@ -128,9 +128,9 @@ def demo_agent(env, action_size, agent_class):
 
 def run_project_demo():
     games = {
-        "TicTacToe": (TicTacToeGame(), 9),
+        # "TicTacToe": (TicTacToeGame(), 9),
         # "Pong": (PongGame(), 6),
-        # "FrozenLake": (FrozenLakeGame(), 4)
+        "FrozenLake": (FrozenLakeGame(), 4)
     }
     for game_name, (env, action_size) in games.items():
         demo_agent(env, action_size, QLearningAgent)
