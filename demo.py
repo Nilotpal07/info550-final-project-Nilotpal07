@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 from problems import TicTacToeGame, PongGame, FrozenLakeGame
-from algorithms import RandomAgent
+from algorithms import QLearningAgent, RandomAgent
 import time
 
 def render_state(env, state, step):
@@ -129,11 +129,11 @@ def demo_agent(env, action_size, agent_class):
 def run_project_demo():
     games = {
         "TicTacToe": (TicTacToeGame(), 9),
-        "Pong": (PongGame(), 3),
-        "FrozenLake": (FrozenLakeGame(), 8)
+        # "Pong": (PongGame(), 6),
+        # "FrozenLake": (FrozenLakeGame(), 4)
     }
     for game_name, (env, action_size) in games.items():
-        demo_agent(env, action_size)
+        demo_agent(env, action_size, QLearningAgent)
 
 if __name__ == "__main__":
     print("Project Report: Random Agent Demonstrations")
