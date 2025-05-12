@@ -89,7 +89,7 @@ def run_comparisons():
                 rr, _, ss, tt = run_episode(env, ql, max_steps=max_steps)
                 r1.append(rr); s.append(ss); t.append(tt)
                 env.reset()
-            results["Tabular Q"] = {
+            results["Q learning"] = {
                 "avg_reward1": np.mean(r1),
                 "avg_steps":   np.mean(s),
                 "avg_time":    np.mean(t)
@@ -113,7 +113,7 @@ def run_comparisons():
                 rr, _, ss, tt = run_episode(env, aq, max_steps=max_steps)
                 r1.append(rr); s.append(ss); t.append(tt)
                 env.reset()
-            results["Approx Q"] = {
+            results["Approx Q-learning"] = {
                 "avg_reward1": np.mean(r1),
                 "avg_steps":   np.mean(s),
                 "avg_time":    np.mean(t)

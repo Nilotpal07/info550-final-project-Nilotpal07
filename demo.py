@@ -64,10 +64,6 @@ def render_state(env, state, step):
 
 
 def demo_agent(env, action_size, agent_factory, max_steps=500):
-    """
-    Generic demo runner. agent_factory(a_size) → new agent instance.
-    Handles RandomAgent, QLearningAgent or ApproxQLearningAgent (with one-hot).
-    """
     agent1 = agent_factory(action_size)
     agent2 = agent_factory(action_size) if isinstance(env, PongGame) else None
     winner = None
@@ -127,15 +123,15 @@ def demo_agent(env, action_size, agent_factory, max_steps=500):
         else:
             winner = agent1.__class__.__name__ if score > 0 else "Opponent"
 
-    print(f"Demo ended in {steps} steps, winner = {winner}")
+    print(f"Game ended in {steps} steps, winner = {winner}")
     cv2.destroyAllWindows()
 
 
-def run_project_demo():
+def run_project():
     games = {
-        "TicTacToe": (TicTacToeGame(), 9),
+        #"TicTacToe": (TicTacToeGame(), 9),
         #"Pong":      (PongGame(),      3),
-        #"FrozenLake": (FrozenLakeGame(), 4),
+        "FrozenLake": (FrozenLakeGame(), 4),
     }
 
     for name, (env, action_size) in games.items():
@@ -157,5 +153,5 @@ def run_project_demo():
 
 
 if __name__ == "__main__":
-    print("Project Report: Agent Demonstrations")
-    run_project_demo()
+    print("Project Report:")
+    run_project()
