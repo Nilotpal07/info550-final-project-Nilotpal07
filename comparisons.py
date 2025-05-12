@@ -1,113 +1,134 @@
 import time
+import numpy as np
+
 from problems import TicTacToeGame, PongGame, FrozenLakeGame
-from algorithms import RandomAgent, QLearningAgent
+from algorithms import RandomAgent, QLearningAgent, ApproxQLearningAgent, one_hot_feature
 
 def run_episode(env, agent1, agent2=None, max_steps=500):
     """
-    Runs a single episode of a game with specified agents.
-    :param env: The game environment.
-    :param agent1: The first agent (e.g., RandomAgent or QLearningAgent).
-    :param agent2: The second agent (only for Pong).
-    :param max_steps: Maximum number of steps allowed per episode.
-    :return: A dictionary containing episode metrics (time taken, score, steps, and winner).
+    Runs one episode in `env` using agent1 (and agent2 for Pong).
+    Returns (reward1, reward2_or_None, steps, elapsed_time).
     """
-    score1 = 0  # Score for agent1
-    score2 = 0  # Score for agent2
     state = env.reset()
     done = False
     steps = 0
-    start_time = time.time()
+    total1 = 0
+    total2 = 0
+    start = time.time()
 
     while not done and steps < max_steps:
         if isinstance(env, PongGame):
-            action1 = agent1.choose_action(state)
-            action2 = agent2.choose_action(state)
-            next_state, (reward1, reward2), done = env.step(action1, action2)
+            a1 = agent1.choose_action(state)
+            a2 = agent2.choose_action(state)
+            (ns, (r1, r2), done) = env.step(a1, a2)
             if hasattr(agent1, 'update'):
-                agent1.update(state, action1, reward1, next_state, done)
-            if hasattr(agent2, 'update'):
-                agent2.update(state, action2, reward2, next_state, done)
-            score1 += reward1
-            score2 += reward2
+                agent1.update(state, a1, r1, ns, done)
+                agent2.update(state, a2, r2, ns, done)
+            total1 += r1
+            total2 += r2
         else:
-            action = agent1.choose_action(state)
-            next_state, reward, done = env.step(action)
+            a = agent1.choose_action(state)
+            ns, r, done = env.step(a)
             if hasattr(agent1, 'update'):
-                agent1.update(state, action, reward, next_state, done)
-            score1 += reward
-        state = next_state
+                agent1.update(state, a, r, ns, done)
+            total1 += r
+        state = ns
         steps += 1
 
-    # Calculate total execution time
-    total_time = time.time() - start_time
-    if isinstance(env, PongGame):
-        winner = "Left Paddle Agent" if score1 < 0 else "Right Paddle Agent"
-        return {"time": total_time, "score_left": score1, "score_right": score2, "steps": steps, "winner": winner}
-    elif isinstance(env, TicTacToeGame):
-        winner = "Agent1" if score1 > 0 else "Agent2"
-        return {"time": total_time, "efficiency": score1, "steps": steps, "winner": winner}
-    else:  # FrozenLakeEnv
-        winner = "Agent1" if score1 > 0 else None
-        return {"time": total_time, "efficiency": score1, "steps": steps, "winner": winner}
-
+    elapsed = time.time() - start
+    return total1, (total2 if isinstance(env, PongGame) else None), steps, elapsed
 
 def run_comparisons():
-    """
-    Runs comparisons of RandomAgent and QLearningAgent on different game environments.
-    :return: A dictionary with performance results for each game.
-    """
     games = {
         "TicTacToe": (TicTacToeGame(), 9),
-        "Pong": (PongGame(), 3),
-        "FrozenLake": (FrozenLakeGame(), 8)
+        "Pong":      (PongGame(),      3),
+        "FrozenLake":(FrozenLakeGame(), 4)
     }
-    results = {}
-    for game_name, (env, action_size) in games.items():
-        print(f"\nRunning agents on {game_name}...")
-        game_results = {}
 
-        # RandomAgent
-        agent1 = RandomAgent(action_size)
-        agent2 = RandomAgent(action_size) if game_name == "Pong" else None
-        if game_name == "FrozenLake":
-            while True:
-                metrics = run_episode(env, agent1)
-                if metrics["efficiency"] > 0:
-                    break
+    # hyperparameters
+    train_eps = 1500
+    test_eps  = 200
+    max_steps = 500
+
+    for name, (env, action_size) in games.items():
+        print(f"\n=== {name} ===")
+        results = {}
+
+        # Always run RandomAgent
+        rand = RandomAgent(action_size)
+        r1, r2, s, t = [], [], [], []
+        for _ in range(test_eps):
+            rr, rr2, ss, tt = run_episode(env, rand, RandomAgent(action_size) if isinstance(env, PongGame) else None, max_steps)
+            r1.append(rr);
+            if rr2 is not None: r2.append(rr2)
+            s.append(ss); t.append(tt)
+            env.reset()
+        results["Random"] = {
+            "avg_reward1": np.mean(r1),
+            "avg_reward2": np.mean(r2) if r2 else None,
+            "avg_steps":   np.mean(s),
+            "avg_time":    np.mean(t)
+        }
+
+        # For TicTacToe and Pong
+        if name == "FrozenLake":
+            # Tabular Q-Learning
+            state_size = env.rows * env.cols
+            ql = QLearningAgent(
+                state_size, action_size,
+                learning_rate=0.1, discount_factor=0.99,
+                epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.05
+            )
+            # train
+            for _ in range(train_eps):
+                run_episode(env, ql, max_steps=max_steps)
                 env.reset()
-        else:
-            metrics = run_episode(env, agent1, agent2)
-        game_results["RandomAgent"] = metrics
-
-        # QLearningAgent
-        agent1 = QLearningAgent(action_size)
-        agent2 = QLearningAgent(action_size) if game_name == "Pong" else None
-        if game_name == "FrozenLake":
-            while True:
-                metrics = run_episode(env, agent1)
-                if metrics["efficiency"] > 0:
-                    break
+            # test
+            r1, s, t = [], [], []
+            for _ in range(test_eps):
+                rr, _, ss, tt = run_episode(env, ql, max_steps=max_steps)
+                r1.append(rr); s.append(ss); t.append(tt)
                 env.reset()
+            results["Tabular Q"] = {
+                "avg_reward1": np.mean(r1),
+                "avg_steps":   np.mean(s),
+                "avg_time":    np.mean(t)
+            }
+
+            # Approximate Q-Learning
+            fe = lambda s,a: one_hot_feature(s, a, state_size, action_size)
+            aq = ApproxQLearningAgent(
+                action_size,
+                feature_extractor=fe,
+                learning_rate=0.1, discount_factor=0.99,
+                epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.05
+            )
+            # train
+            for _ in range(train_eps):
+                run_episode(env, aq, max_steps=max_steps)
+                env.reset()
+            # test
+            r1, s, t = [], [], []
+            for _ in range(test_eps):
+                rr, _, ss, tt = run_episode(env, aq, max_steps=max_steps)
+                r1.append(rr); s.append(ss); t.append(tt)
+                env.reset()
+            results["Approx Q"] = {
+                "avg_reward1": np.mean(r1),
+                "avg_steps":   np.mean(s),
+                "avg_time":    np.mean(t)
+            }
+
+        # print
+        if name == "Pong":
+            print(f"{'Agent':<12} {'R1':>6} {'R2':>6} {'Steps':>6} {'Time(s)':>8}")
+            for agent, m in results.items():
+                print(f"{agent:<12} {m['avg_reward1']:6.2f} {m['avg_reward2']:6.2f} "
+                      f"{m['avg_steps']:6.1f} {m['avg_time']:8.3f}")
         else:
-            metrics = run_episode(env, agent1, agent2)
-        game_results["QLearningAgent"] = metrics
-
-        results[game_name] = game_results
-
-    # Print results for each game
-    for game_name, game_results in results.items():
-        print(f"\nResults for {game_name}:")
-        for agent_name, metrics in game_results.items():
-            if game_name == "Pong":
-                print(
-                    f"  {agent_name}: Time={metrics['time']:.2f}s, Score Left={metrics['score_left']}, "
-                    f"Score Right={metrics['score_right']}, Steps={metrics['steps']}, Winner={metrics['winner']}")
-            else:
-                print(
-                    f"  {agent_name}: Time={metrics['time']:.2f}s, Efficiency={metrics['efficiency']:.2f}, "
-                    f"Steps={metrics['steps']}, Winner={metrics['winner']}")
-    # Return performance results
-    return results
+            print(f"{'Agent':<12} {'Reward':>8} {'Steps':>6} {'Time(s)':>8}")
+            for agent, m in results.items():
+                print(f"{agent:<12} {m['avg_reward1']:8.3f} {m['avg_steps']:6.1f} {m['avg_time']:8.3f}")
 
 if __name__ == "__main__":
     run_comparisons()

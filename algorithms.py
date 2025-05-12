@@ -1,57 +1,168 @@
-import numpy as np  #Import the NumPy library for numerical operations
+import numpy as np
 import random
 
-# Define a class named RandomAgent
+# ─── Random Agent ───────────────────────────────────────────────────────────
 class RandomAgent:
-
-    # Initialize the RandomAgent with the number of possible actions
     def __init__(self, action_size):
         self.action_size = action_size
 
-    # Method to choose an action randomly from the available actions
     def choose_action(self, state):
-        return np.random.randint(self.action_size)
+        return random.randrange(self.action_size)
 
-
-def get_state_key(state):
-    # Convert state to a hashable key
-    if isinstance(state, np.ndarray):
-        return tuple(state.flatten())
-    elif isinstance(state, (list, tuple)):
-        return tuple(state)
-    else:
-        return state
-
-
+# ─── Generic Tabular Q-Learning ─────────────────────────────────────────────
 class QLearningAgent:
-    def __init__(self, action_size, learning_rate=0.1, discount_factor=0.99, epsilon=1, epsilon_decay=0.995, epsilon_min=0.05):
+    def __init__(self, state_size, action_size,
+                 learning_rate=0.1, discount_factor=0.99,
+                 epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.05):
+        self.state_size  = state_size
         self.action_size = action_size
-        self.q_table = {}  # Dictionary to store Q-values
-        self.lr = learning_rate
-        self.gamma = discount_factor
-        self.epsilon = epsilon
+        self.lr          = learning_rate
+        self.gamma       = discount_factor
+        self.epsilon     = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
+        self.q_table     = np.zeros((state_size, action_size), dtype=float)
 
     def choose_action(self, state):
-        state_key = get_state_key(state)
         if random.random() < self.epsilon:
-            return random.randint(0, self.action_size - 1)
-        else:
-            self.q_table.setdefault(state_key, np.zeros(self.action_size))
-            return int(np.argmax(self.q_table[state_key]))
+            return random.randrange(self.action_size)
+        return int(np.argmax(self.q_table[state]))
 
     def update(self, state, action, reward, next_state, done):
-        state_key = get_state_key(state)
-        next_state_key = get_state_key(next_state)
-
-        self.q_table.setdefault(state_key, np.zeros(self.action_size))
-        self.q_table.setdefault(next_state_key, np.zeros(self.action_size))
-
-        best_next_action = np.max(self.q_table[next_state_key])
-        td_target = reward + self.gamma * best_next_action * (0 if done else 1)
-        td_error = td_target - self.q_table[state_key][action]
-        self.q_table[state_key][action] += self.lr * td_error
-
+        if done:
+            td_target = reward
+        else:
+            td_target = reward + self.gamma * np.max(self.q_table[next_state])
+        td_error = td_target - self.q_table[state, action]
+        self.q_table[state, action] += self.lr * td_error
         if done:
             self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+
+# ─── Approximate Q-Learning with One-Hot Features ───────────────────────────
+def one_hot_feature(state, action, n_states, n_actions):
+    phi = np.zeros(n_states * n_actions, dtype=float)
+    idx = state * n_actions + action
+    phi[idx] = 1.0
+    return phi
+
+class ApproxQLearningAgent:
+    def __init__(self, action_size, feature_extractor,
+                 learning_rate=0.1, discount_factor=0.99,
+                 epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.05):
+        self.action_size = action_size
+        self.fe          = feature_extractor
+        self.lr          = learning_rate
+        self.gamma       = discount_factor
+        self.epsilon     = epsilon
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
+        # infer feature dim
+        self.weights = np.zeros_like(self.fe(0, 0), dtype=float)
+
+    def q_value(self, state, action):
+        phi = self.fe(state, action)
+        return float(np.dot(self.weights, phi))
+
+    def choose_action(self, state):
+        if random.random() < self.epsilon:
+            return random.randrange(self.action_size)
+        q_vals = [self.q_value(state, a) for a in range(self.action_size)]
+        return int(np.argmax(q_vals))
+
+    def update(self, state, action, reward, next_state, done):
+        if done:
+            target = reward
+        else:
+            q_next = [self.q_value(next_state, a) for a in range(self.action_size)]
+            target = reward + self.gamma * max(q_next)
+        current = self.q_value(state, action)
+        error = target - current
+        phi = self.fe(state, action)
+        self.weights += self.lr * error * phi
+        if done:
+            self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+
+# ─── Tic-Tac-Toe Tabular Q-Learning ──────────────────────────────────────────
+def board_to_key(state):
+    return ''.join(map(str, state.tolist()))
+
+class QLearningTTTAgent:
+    def __init__(self, action_size,
+                 learning_rate=0.1, discount_factor=0.99,
+                 epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.05):
+        self.action_size = action_size
+        self.lr          = learning_rate
+        self.gamma       = discount_factor
+        self.epsilon     = epsilon
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
+        self.q_table     = {}  # key: board string → np.zeros(9)
+
+    def choose_action(self, state):
+        key = board_to_key(state)
+        self.q_table.setdefault(key, np.zeros(self.action_size))
+        empties = np.where(state == 0)[0]
+        if random.random() < self.epsilon:
+            return random.choice(empties)
+        q = self.q_table[key].copy()
+        q[state != 0] = -np.inf
+        return int(np.argmax(q))
+
+    def update(self, state, action, reward, next_state, done):
+        sk = board_to_key(state)
+        nk = board_to_key(next_state)
+        self.q_table.setdefault(sk, np.zeros(self.action_size))
+        self.q_table.setdefault(nk, np.zeros(self.action_size))
+        q_sa = self.q_table[sk][action]
+        q_next = self.q_table[nk].copy()
+        q_next[next_state != 0] = -np.inf
+        target = reward if done else reward + self.gamma * np.max(q_next)
+        self.q_table[sk][action] += self.lr * (target - q_sa)
+        if done:
+            self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+
+# ─── Pong Tabular & Approx Features ─────────────────────────────────────────
+def pong_key(state):
+    return ','.join(map(str, state))
+
+class QLearningPongAgent:
+    def __init__(self, action_size,
+                 learning_rate=0.1, discount_factor=0.99,
+                 epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.05):
+        self.action_size = action_size
+        self.lr          = learning_rate
+        self.gamma       = discount_factor
+        self.epsilon     = epsilon
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
+        self.q_table     = {}
+
+    def choose_action(self, state):
+        key = pong_key(state)
+        self.q_table.setdefault(key, np.zeros(self.action_size))
+        if random.random() < self.epsilon:
+            return random.randrange(self.action_size)
+        return int(np.argmax(self.q_table[key]))
+
+    def update(self, state, action, reward, next_state, done):
+        sk = pong_key(state)
+        nk = pong_key(next_state)
+        self.q_table.setdefault(sk, np.zeros(self.action_size))
+        self.q_table.setdefault(nk, np.zeros(self.action_size))
+        q_sa = self.q_table[sk][action]
+        best_next = np.max(self.q_table[nk])
+        target = reward if done else reward + self.gamma * best_next
+        self.q_table[sk][action] += self.lr * (target - q_sa)
+        if done:
+            self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+
+def pong_features(state, action):
+    # hand-crafted 7-dim features
+    bx, by, lp, rp = state
+    return np.array([
+        bx, by,
+        lp, rp,
+        bx*by,
+        abs(lp - rp),
+        action
+    ], dtype=float)
