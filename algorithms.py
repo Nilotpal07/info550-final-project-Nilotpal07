@@ -38,7 +38,7 @@ class QLearningAgent:
         if done:
             self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
-# ─── Approximate Q-Learning with One-Hot Features ───────────────────────────
+# Approximate Q-Learning
 def one_hot_feature(state, action, n_states, n_actions):
     phi = np.zeros(n_states * n_actions, dtype=float)
     idx = state * n_actions + action
@@ -56,7 +56,6 @@ class ApproxQLearningAgent:
         self.epsilon     = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
-        # infer feature dim
         self.weights = np.zeros_like(self.fe(0, 0), dtype=float)
 
     def q_value(self, state, action):
@@ -82,7 +81,7 @@ class ApproxQLearningAgent:
         if done:
             self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
-# ─── Tic-Tac-Toe Tabular Q-Learning ──────────────────────────────────────────
+# Tic-Tac-Toe Q-Learning
 def board_to_key(state):
     return ''.join(map(str, state.tolist()))
 
@@ -96,7 +95,7 @@ class QLearningTTTAgent:
         self.epsilon     = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
-        self.q_table     = {}  # key: board string → np.zeros(9)
+        self.q_table     = {}
 
     def choose_action(self, state):
         key = board_to_key(state)
@@ -121,7 +120,7 @@ class QLearningTTTAgent:
         if done:
             self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
-# ─── Pong Tabular & Approx Features ─────────────────────────────────────────
+# Pong
 def pong_key(state):
     return ','.join(map(str, state))
 
@@ -157,7 +156,6 @@ class QLearningPongAgent:
             self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
 def pong_features(state, action):
-    # hand-crafted 7-dim features
     bx, by, lp, rp = state
     return np.array([
         bx, by,

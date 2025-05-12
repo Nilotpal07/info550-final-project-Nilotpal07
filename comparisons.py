@@ -54,7 +54,7 @@ def run_comparisons():
         print(f"\n=== {name} ===")
         results = {}
 
-        # Always run RandomAgent
+        # Run RandomAgent
         rand = RandomAgent(action_size)
         r1, r2, s, t = [], [], [], []
         for _ in range(test_eps):
